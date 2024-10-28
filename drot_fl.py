@@ -12,9 +12,8 @@ tmap=mpl.cm.get_cmap("terrain",10)
 df1 = pd.read_excel('/Users/duan/Desktop/sep/SolarErupDB_Kazachenko2023_V1.xlsx')
 
 # 定义速度的范围和标签
-bins = [0, 359, float('inf')]
-labels = [1, 2]
-binsfl =['E','C']
+bins = [0, 1000,float('inf')]
+labels = [1,2]
 
 
 # 使用 pd.cut() 进行分类
@@ -35,6 +34,10 @@ Rbarea = pd.to_numeric(Rbarea,errors='coerce')
 fluxratio = df1['Flux: ratio [%]']
 arearatio = df1['Area: ratio [%]']
 eruptivity=df1['Eruptivity']
+lon= df1['Lon [deg]']
+lat= df1['Lat [deg]']
+
+
 kb=1.380649e-16
 thermal=3/np.power(8,0.25)*np.sqrt(EM)*np.power(Rbarea,0.75)*T*kb*10**30
 thermal = pd.to_numeric(thermal,errors='coerce')
@@ -43,7 +46,15 @@ mask_sep = sep !=1
 mask_sep1 = sep == 1
 mask_fl= eruptivity =='E'
 print(eruptivity.unique())
-widthtype = pd.cut(width[mask_cme], bins=bins, labels=labels, right=False)
+speedtype = pd.cut(cmespeed[mask_cme], bins=bins, labels=labels, right=False)
+print(speedtype)
+fig2 = plt.figure(figsize=(12,4))
+axa = fig2.add_subplot(1,3,1)
+axb = fig2.add_subplot(1,3,2)
+axc = fig2.add_subplot(1,3,3)
+
+
+
 fig= plt.figure(figsize=(20,15))
 ax1 = fig.add_subplot(3,4,1)
 ax2 = fig.add_subplot(3,4,2)
@@ -61,8 +72,16 @@ ax12 = fig.add_subplot(3,4,12)
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax1.scatter(T[mask],flux[mask],color=amap(7),marker='o',facecolor='none',s=30,label='{}'.format(type))
-      ax1.scatter(T[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o',s=30,label='SEP')
+      for type_speed in speedtype.unique():
+          mask1 =speedtype == type_speed
+          if type_speed == 1:
+           ax1.scatter(T[mask1&mask],flux[mask1&mask],color=amap(7),marker='o',facecolor='none',s=30,label='CME<1000 km/s')
+           ax1.scatter(T[mask1&mask_sep1&mask],flux[mask1&mask_sep1&mask],color=cmap(1),marker='o',s=30)
+          elif type_speed == 2 :
+           ax1.scatter(T[mask1&mask], flux[mask1&mask], color=amap(4), marker='^', facecolor='none', s=30,label='CME>1000 km/s')
+           ax1.scatter(T[mask1 & mask_sep1&mask], flux[mask_sep1&mask1&mask], color=cmap(1), marker='^', s=30)
+
+
       coefficients = np.polyfit(T[mask],np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),T[mask])
       polynomial = np.poly1d(coefficients)
@@ -77,11 +96,19 @@ for type in eruptivity.unique():
       ax1.plot(x_fit, 10**y_fit, color=amap(1), linestyle='solid',alpha=0.6,linewidth=0.5,label='r_eur={:.2f}'.format(corr_coefficient))
 
 
+
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax2.scatter(EM[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax2.scatter(EM[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o',s=30)
+      for type_speed in speedtype.unique():
+          mask1 =speedtype == type_speed
+          if type_speed == 1:
+            ax2.scatter(EM[mask1&mask&mask_sep],flux[mask1&mask&mask_sep],color=amap(7),marker='o',facecolor='none',s=30)
+            ax2.scatter(EM[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='o',s=30)
+          if type_speed == 2:
+            ax2.scatter(EM[mask1&mask&mask_sep],flux[mask1&mask&mask_sep],color=amap(4),marker='^',facecolor='none',s=30)
+            ax2.scatter(EM[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='^',s=30)
+
       coefficients = np.polyfit(np.log10(EM[mask]),np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),np.log10(EM[mask]))
       polynomial = np.poly1d(coefficients)
@@ -100,8 +127,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax3.scatter(dur[mask]/60,flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax3.scatter(dur[mask&mask_sep1]/60,flux[mask_sep1],color=amap(1),marker='o',s=30)
+      for type_speed in speedtype.unique():
+            mask1 = speedtype == type_speed
+            if type_speed == 1:
+             ax3.scatter(dur[mask1&mask&mask_sep]/60,flux[mask1&mask&mask_sep],color=amap(7),marker='o',facecolor='none',s=30)
+             ax3.scatter(dur[mask&mask_sep1&mask1]/60,flux[mask&mask_sep1&mask1],color=cmap(1),marker='o',s=30)
+            if type_speed == 2:
+             ax3.scatter(dur[mask1&mask&mask_sep]/60,flux[mask1&mask&mask_sep],color=amap(4),marker='^',facecolor='none',s=30)
+             ax3.scatter(dur[mask&mask_sep1&mask1]/60,flux[mask&mask_sep1&mask1],color=cmap(1),marker='^',s=30)
       coefficients = np.polyfit(dur[mask]/60,np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),dur[mask]/60)
       polynomial = np.poly1d(coefficients)
@@ -121,8 +154,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax4.scatter(Unsigned[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax4.scatter(Unsigned[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o',s=30)
+      for type_speed in speedtype.unique():
+          mask1 = speedtype == type_speed
+          if type_speed == 1:
+           ax4.scatter(Unsigned[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(7),marker='o',facecolor='none',s=30)
+           ax4.scatter(Unsigned[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=amap(1),marker='o',s=30)
+          if type_speed == 2:
+           ax4.scatter(Unsigned[mask&mask_sep&mask1], flux[mask&mask_sep&mask1], color=amap(4), marker='^',facecolor='none', s=30)
+           ax4.scatter(Unsigned[mask&mask_sep1&mask1], flux[mask&mask_sep1&mask1], color=amap(1), marker='^', s=30)
       coefficients = np.polyfit(np.log10(Unsigned[mask]),np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),np.log10(Unsigned[mask]))
       polynomial = np.poly1d(coefficients)
@@ -142,8 +181,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax5.scatter(recflux[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax5.scatter(recflux[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o',s=30)
+      for type_speed in speedtype.unique():
+          mask1 = speedtype == type_speed
+          if type_speed == 1:
+            ax5.scatter(recflux[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(7),marker='o',facecolor='none',s=30)
+            ax5.scatter(recflux[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='o',s=30)
+          if type_speed == 2:
+            ax5.scatter(recflux[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(4),marker='^',facecolor='none',s=30)
+            ax5.scatter(recflux[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='^',s=30)
       coefficients = np.polyfit(np.log10(recflux[mask]),np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),np.log10(recflux[mask]))
       polynomial = np.poly1d(coefficients)
@@ -163,8 +208,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax6.scatter(recrate[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax6.scatter(recrate[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o',s=30)
+      for type_speed in speedtype.unique():
+          mask1 = speedtype == type_speed
+          if type_speed == 1:
+             ax6.scatter(recrate[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(7),marker='o',facecolor='none',s=30)
+             ax6.scatter(recrate[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='o',s=30)
+          if type_speed == 2:
+             ax6.scatter(recrate[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(4),marker='^',facecolor='none',s=30)
+             ax6.scatter(recrate[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='^',s=30)
       coefficients = np.polyfit(np.log10(recrate[mask]),np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),np.log10(recrate[mask]))
       polynomial = np.poly1d(coefficients)
@@ -184,8 +235,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax7.scatter(ARarea[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax7.scatter(ARarea[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o')
+      for type_speed in speedtype.unique():
+          mask1 = speedtype == type_speed
+          if type_speed == 1:
+            ax7.scatter(ARarea[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(7),marker='o',facecolor='none',s=30)
+            ax7.scatter(ARarea[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='o')
+          if type_speed == 2:
+            ax7.scatter(ARarea[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(4),marker='^',facecolor='none',s=30)
+            ax7.scatter(ARarea[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='^')
       coefficients = np.polyfit(np.log10(ARarea[mask]),np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),np.log10(ARarea[mask]))
       polynomial = np.poly1d(coefficients)
@@ -204,8 +261,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax8.scatter(Rbarea[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax8.scatter(Rbarea[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o')
+      for type_speed in speedtype.unique():
+            mask1 = speedtype == type_speed
+            if type_speed == 1:
+              ax8.scatter(Rbarea[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(7),marker='o',facecolor='none',s=30)
+              ax8.scatter(Rbarea[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='o')
+            if type_speed == 2:
+              ax8.scatter(Rbarea[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(4),marker='^',facecolor='none',s=30)
+              ax8.scatter(Rbarea[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='^')
       coefficients = np.polyfit(np.log10(Rbarea[mask]),np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),np.log10(Rbarea[mask]))
       polynomial = np.poly1d(coefficients)
@@ -224,8 +287,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax9.scatter(fluxratio[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax9.scatter(fluxratio[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o')
+      for type_speed in speedtype.unique():
+                mask1 = speedtype == type_speed
+                if type_speed == 1:
+                  ax9.scatter(fluxratio[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(7),marker='o',facecolor='none',s=30)
+                  ax9.scatter(fluxratio[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='o')
+                if type_speed == 2:
+                  ax9.scatter(fluxratio[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(4),marker='^',facecolor='none',s=30)
+                  ax9.scatter(fluxratio[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='^')
       coefficients = np.polyfit(fluxratio[mask],np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),fluxratio[mask])
       polynomial = np.poly1d(coefficients)
@@ -245,8 +314,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax10.scatter(arearatio[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax10.scatter(arearatio[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o',s=30)
+      for type_speed in speedtype.unique():
+                mask1 = speedtype == type_speed
+                if type_speed == 1:
+                  ax10.scatter(arearatio[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(7),marker='o',facecolor='none',s=30)
+                  ax10.scatter(arearatio[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='o',s=30)
+                if type_speed == 2:
+                  ax10.scatter(arearatio[mask&mask_sep&mask1],flux[mask&mask_sep&mask1],color=amap(4),marker='^',facecolor='none',s=30)
+                  ax10.scatter(arearatio[mask&mask_sep1&mask1],flux[mask&mask_sep1&mask1],color=cmap(1),marker='^',s=30)
       coefficients = np.polyfit(arearatio[mask],np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),arearatio[mask])
       polynomial = np.poly1d(coefficients)
@@ -265,8 +340,14 @@ for type in eruptivity.unique():
 for type in eruptivity.unique():
     mask = eruptivity == type
     if type=='E':
-      ax11.scatter(thermal[mask],flux[mask],color=amap(1),marker='o',facecolor='none',s=30)
-      ax11.scatter(thermal[mask&mask_sep1],flux[mask_sep1],color=amap(1),marker='o')
+      for type_speed in speedtype.unique():
+            mask1 = speedtype == type_speed
+            if type_speed == 1:
+              ax11.scatter(thermal[mask1&mask],flux[mask1&mask],color=amap(7),marker='o',facecolor='none',s=30)
+              ax11.scatter(thermal[mask1&mask&mask_sep1],flux[mask1&mask&mask_sep1],color=cmap(1),marker='o')
+            if type_speed == 2:
+              ax11.scatter(thermal[mask1&mask],flux[mask1&mask],color=amap(4),marker='^',facecolor='none',s=30)
+              ax11.scatter(thermal[mask1&mask&mask_sep1],flux[mask1&mask&mask_sep1],color=cmap(1),marker='^')
       coefficients = np.polyfit(np.log10(thermal[mask]),np.log10(flux[mask]),  1)
       corr_coefficient,p_value=pearsonr(np.log10(flux[mask]),np.log10(thermal[mask]))
       polynomial = np.poly1d(coefficients)
@@ -280,8 +361,14 @@ for type in eruptivity.unique():
                label='r_sep={:.2f}'.format(corr_coefficient_sep))
       ax11.plot(10**x_fit, 10**y_fit, color=amap(1), linestyle='solid',alpha=0.6,linewidth=0.5,label='r_eur={:.2f}'.format(corr_coefficient))
 
-#ax1.set_xscale('log')
+
+
+
+
+
+
 ax1.set_yscale('log')
+ax1.scatter([], [], color=amap(1), marker='s', label='SEP')
 ax1.set_yticks([10**(-5), 10**(-4), 10**(-3)])
 ax1.set_xticks([10,15,20,25,30])
 ax1.set_ylim(10**(-5.5),1e-3)
